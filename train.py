@@ -32,11 +32,18 @@ model = keras.Sequential([
     keras.layers.Dense(10, activation='softmax')
 ])
 
+# saving
+checkpoint_path = "saved_model/model.ckpt"
+cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1)
+
 model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-model.fit(train_images, train_labels, epochs=10)
+model.fit(train_images, train_labels, epochs=10, callbacks=[cp_callback])
+
 test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
 
 print('\nTest accuracy:', test_acc)
