@@ -1,18 +1,21 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow_datasets as tfds
 
-mnist = keras.datasets.mnist
-
-(train_images, train_labels), (test_images, test_labels) = mnist.load_data()
-
-train_images = train_images / 255.0
+test_ds = tfds.load("emnist", split=tfds.Split.TEST, batch_size=-1)
+test_ds = tfds.as_numpy(test_ds)
+test_images, test_labels = test_ds["image"], test_ds["label"]
 test_images = test_images / 255.0
 
+emnist_builder = tfds.builder('emnist')
+info = emnist_builder.info
+num_classes = info.features['label'].num_classes
+
 model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(28, 28)),
+    keras.layers.Flatten(input_shape=(28, 28, 1)),
     keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dense(10, activation='softmax')
+    keras.layers.Dense(num_classes, activation='softmax')
 ])
 
 checkpoint_dir = 'saved_model'

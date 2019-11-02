@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # TensorFlow and tf.keras
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow_datasets as tfds
 
 # Helper libraries
 import numpy as np
@@ -10,26 +11,27 @@ import matplotlib.pyplot as plt
 
 print(tf.__version__)
 
-mnist = keras.datasets.mnist
-
-(train_images, train_labels), (test_images, test_labels) = mnist.load_data()
-
-print(train_images.shape)
-print(len(train_labels))
-print((train_labels))
-# plt.figure()
-# plt.imshow(train_images[0])
-# plt.gray()
-# plt.grid(False)
-# plt.show()
-
+train_ds = tfds.load("emnist", split=tfds.Split.TRAIN, batch_size=-1)
+train_ds = tfds.as_numpy(train_ds)
+train_images, train_labels = train_ds["image"], train_ds["label"]
 train_images = train_images / 255.0
+
+test_ds = tfds.load("emnist", split=tfds.Split.TEST, batch_size=-1)
+test_ds = tfds.as_numpy(test_ds)
+test_images, test_labels = test_ds["image"], test_ds["label"]
 test_images = test_images / 255.0
 
+emnist_builder = tfds.builder('emnist')
+info = emnist_builder.info
+num_classes = info.features['label'].num_classes
+
+print(train_images.shape)
+print(test_images.shape)
+
 model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(28, 28)),
+    keras.layers.Flatten(input_shape=(28, 28, 1)),
     keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dense(10, activation='softmax')
+    keras.layers.Dense(num_classes, activation='softmax')
 ])
 
 # saving
@@ -42,8 +44,8 @@ model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-model.fit(train_images, train_labels, epochs=10, callbacks=[cp_callback])
+model.fit(train_images, train_labels, epochs=10, callbacks=[cp_callback], batch_size=128)
 
-test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2, batch_size=128)
 
 print('\nTest accuracy:', test_acc)
