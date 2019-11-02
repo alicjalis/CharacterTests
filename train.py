@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 from tensorflow import keras
 import tensorflow_datasets as tfds
-
+from model import model
 # Helper libraries
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,12 +27,6 @@ num_classes = info.features['label'].num_classes
 
 print(train_images.shape) # liczba obrazkow, piksele wysokosc, piksele szerokosc, liczba kanalow (1 - szary)
 print(test_images.shape)
-
-model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(28, 28, 1)), #warstwy sieci neuronowej, jej architektura
-    keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dense(num_classes, activation='softmax')
-])
 
 # saving
 checkpoint_path = "saved_model/model.ckpt"
