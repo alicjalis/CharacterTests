@@ -25,11 +25,11 @@ emnist_builder = tfds.builder('emnist')
 info = emnist_builder.info
 num_classes = info.features['label'].num_classes
 
-print(train_images.shape)
+print(train_images.shape) # liczba obrazkow, piksele wysokosc, piksele szerokosc, liczba kanalow (1 - szary)
 print(test_images.shape)
 
 model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(28, 28, 1)),
+    keras.layers.Flatten(input_shape=(28, 28, 1)), #warstwy sieci neuronowej, jej architektura
     keras.layers.Dense(128, activation='relu'),
     keras.layers.Dense(num_classes, activation='softmax')
 ])
