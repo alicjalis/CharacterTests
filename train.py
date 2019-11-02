@@ -14,8 +14,8 @@ mnist = keras.datasets.mnist
 
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
 
-print(train_images.shape)
-print(len(train_labels))
+print(train_images.shape) #piksele
+print(len(train_labels)) #tyle ile obrazow wychodzi
 print((train_labels))
 # plt.figure()
 # plt.imshow(train_images[0])
@@ -23,11 +23,11 @@ print((train_labels))
 # plt.grid(False)
 # plt.show()
 
-train_images = train_images / 255.0
+train_images = train_images / 255.0 # potem wartosci pikseli sa od 0 do 1 bo tak sie robi zeby nie bylo za duze
 test_images = test_images / 255.0
 
 model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(28, 28)),
+    keras.layers.Flatten(input_shape=(28, 28)), #warstwy sieci neuronowej, jej architektura
     keras.layers.Dense(128, activation='relu'),
     keras.layers.Dense(10, activation='softmax')
 ])
