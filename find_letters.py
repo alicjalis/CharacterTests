@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
-
+import tensorflow as tf
+from tensorflow import keras
+import tensorflow_datasets as tfds
+from model import model
 from utils import block_thresh
 
 img = cv2.imread('sample2.jpg', cv2.IMREAD_GRAYSCALE)
@@ -92,15 +95,66 @@ for i, component in enumerate(filtered_components):
     components_within_grid.append(component)
 
 # at this point, some letters are split into separate components. Lets merge them together and apply closing
-#  since we care only about the positions of the letters, we could distort them heavily and get letters back later
+# since we care only about the positions of the letters, we could distort them heavily and get letters back later
 img_letters = np.max(np.array(components_within_grid), 0)
 kernel = np.ones((9, 9), np.uint8)
 
 # todo -> don't forget to cut letters out of original thresh image!
 # todo -> a little blurring might be useful since emnist is not striclty binary
-# img_letters = cv2.dilate(img_letters, kernel)
+img_letters_dil = cv2.dilate(img_letters, kernel)  # pogrubia
+num_components_let, components_let = cv2.connectedComponents(img_letters_dil)
 
-img_letters = cv2.resize(img_letters, (600, 600))
-cv2.imwrite('chars.jpg', img_letters)
-cv2.imshow('', img_letters)
-cv2.waitKey(5000)
+positions = []
+images = []
+
+# iterate from 1, since first component is the whole image
+for i in range(1, num_components_let):
+    # convert component to binary mask with 0's and 255's
+    components_let_ = (components_let == i).astype(np.uint8) * 255
+    bbox = cv2.boundingRect(components_let_)
+    positions.append(bbox)
+    x, y, w, h = bbox
+
+    letter = img_letters[y:y + h, x:x + w]
+    letter = letter / 255
+    letter = letter.astype(np.float32)
+
+    # pad and resize 
+    l_h, l_w = letter.shape
+    long_side = max(l_h, l_w)
+
+    # due to integer division (//) there might be 1 pixel difference between true square, but that could be dealt with resize
+    # paddings
+    # todo: this padd ofset yields best results when inr ange 0.05 to 0.15 depending on image
+    pad_offset = 0.15
+    h_pad = (long_side - l_h) // 2 + + int(long_side * pad_offset)
+    w_pad = (long_side - l_w) // 2 + int(long_side * pad_offset)
+
+    letter = np.pad(letter, [(h_pad, h_pad), (w_pad, w_pad)])
+    letter = cv2.resize(letter, (28, 28), interpolation=cv2.INTER_CUBIC)
+
+    images.append(letter)
+
+images = np.array(images)
+images = np.expand_dims(images, -1)
+checkpoint_dir = 'saved_model'
+
+latest = tf.train.latest_checkpoint(checkpoint_dir)
+model.load_weights(latest)
+
+# network assigns 0..1 score for each label
+prediction_scores = model.predict(images)
+pred_labels = np.argmax(prediction_scores, -1)
+
+vocabulary = list(str(i) for i in range(0, 10)) + [chr(c) for c in range(ord('A'), ord('Z') + 1)] + [chr(c) for c in range(ord('a'), ord('z') + 1)]
+pred_letters = [vocabulary[label] for label in pred_labels]
+
+result_img = np.copy(img)
+
+for bbox, letter in zip(positions, pred_letters):
+    cv2.putText(result_img, letter, (bbox[0] - 30, bbox[1]), cv2.FONT_HERSHEY_COMPLEX, 3, 0, 2, cv2.LINE_AA)
+
+# for vis purposes
+result_img = cv2.resize(result_img, (600, 600))
+cv2.imshow('im', result_img)
+cv2.waitKey(-1)
