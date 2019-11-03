@@ -1,16 +1,21 @@
 import cv2
 import numpy as np
 
-img = cv2.imread('sample.jpg', cv2.IMREAD_GRAYSCALE)
+from utils import block_thresh
+
+img = cv2.imread('sample2.jpg', cv2.IMREAD_GRAYSCALE)
 img_pixels = img.shape[0] * img.shape[1]
 
-_, img_thresh = cv2.threshold(img, 127, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C)  # ensure binary
-# gaussian thresh inverts colors, which is actually ok for further computations, since connectedComponents works on non zero pixels
+img_thresh = block_thresh(img, 10, 15, max_ratio=0.9)
+
+# both emnist and further functions use black backgrounds and white letters
+img_thresh = 255 - img_thresh
 
 num_components, components = cv2.connectedComponents(img_thresh)
 
 grid_component = None
 filtered_components = []
+print('filtering size')
 for i in range(num_components):
     # convert component to binary mask with 0's and 255's
     component = (components == i).astype(np.uint8) * 255
@@ -32,6 +37,8 @@ for i in range(num_components):
 grid_id = None
 grid = None
 max_bbox = None
+print('searching for grid')
+
 for i, component in enumerate(filtered_components):
     # let's find the bounding box for each component. We assume that the grid should have the largest bounding box of
     # them all
@@ -63,6 +70,7 @@ max_y = grid_yc + (grid_h / 2) * offset
 
 # remove all components which lie outside boundaries
 components_within_grid = []
+print('removing outliers')
 for i, component in enumerate(filtered_components):
     # grid is also among filtered components
     if i == grid_id:
@@ -87,9 +95,12 @@ for i, component in enumerate(filtered_components):
 #  since we care only about the positions of the letters, we could distort them heavily and get letters back later
 img_letters = np.max(np.array(components_within_grid), 0)
 kernel = np.ones((9, 9), np.uint8)
-img_letters = cv2.dilate(img_letters, kernel)
+
+# todo -> don't forget to cut letters out of original thresh image!
+# todo -> a little blurring might be useful since emnist is not striclty binary
+# img_letters = cv2.dilate(img_letters, kernel)
 
 img_letters = cv2.resize(img_letters, (600, 600))
 cv2.imwrite('chars.jpg', img_letters)
 cv2.imshow('', img_letters)
-cv2.waitKey(-1)
+cv2.waitKey(5000)
